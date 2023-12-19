@@ -1,0 +1,13 @@
+version: "3.5"
+
+services:
+  Duo_Manual_Push_Auth:
+    image: ghcr.io/gve-sw/gve_devnet_duo_manual_push_auth:latest
+    container_name: gve_devnet_duo_manual_push_auth:container
+    environment:
+      - SOME_VAR=""
+    ports:
+
+    volumes:
+      - config.yaml:/main/config.yaml
+    restart: "always"
