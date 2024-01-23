@@ -20,19 +20,22 @@ import urllib.parse
 import requests
 from urllib.parse import urlparse
 from config.config import config
-
-# Access environment variables
-IKEY = config.DUO_IKEY
-SKEY = config.DUO_SKEY
-API_URL = config.DUO_API_URL
+import time
+from pprint import pprint
 
 
 class DuoAuthenticator:
-    def __init__(self, ikey, skey, api_url):
-        self.ikey = ikey
-        self.skey = skey
-        self.api_url = api_url
-        self.host = self.parse_hostname(api_url)
+    def __init__(self):
+        # Access environment variables
+        # For both Auth and Admin Duo API
+        self.auth_ikey = config.DUO_IKEY
+        self.auth_skey = config.DUO_SKEY
+        self.auth_api_url = config.DUO_API_URL
+        self.auth_host = self.parse_hostname(self.auth_api_url)
+        self.admin_ikey = config.DUO_ADMIN_IKEY
+        self.admin_skey = config.DUO_ADMIN_SKEY
+        self.admin_api_url = config.DUO_ADMIN_API_URL
+        self.admin_host = self.parse_hostname(self.admin_api_url)
 
     def parse_hostname(self, url):
         parsed_url = urlparse(url)
@@ -43,8 +46,16 @@ class DuoAuthenticator:
         return host
 
     def generate_headers(self, method, path, params):
+        if path.startswith('/admin'):
+            ikey = self.admin_ikey
+            skey = self.admin_skey
+            host = self.admin_host
+        else:
+            ikey = self.auth_ikey
+            skey = self.auth_skey
+            host = self.auth_host
         now = email.utils.formatdate()
-        canon = [now, method.upper(), self.host.lower(), path]
+        canon = [now, method.upper(), host.lower(), path]
         args = []
         for key in sorted(params.keys()):
             val = params[key].encode("utf-8")
@@ -52,26 +63,32 @@ class DuoAuthenticator:
                 '%s=%s' % (urllib.parse.quote(key, '~'), urllib.parse.quote(val, '~')))
         canon.append('&'.join(args))
         canon = '\n'.join(canon)
-        sig = hmac.new(bytes(self.skey, encoding='utf-8'),
+        sig = hmac.new(bytes(skey, encoding='utf-8'),
                        bytes(canon, encoding='utf-8'), hashlib.sha1)
-        auth = '%s:%s' % (self.ikey, sig.hexdigest())
+        auth = '%s:%s' % (ikey, sig.hexdigest())
         return ('&'.join(args), {
             'Date': now,
             'Authorization': 'Basic %s' % base64.b64encode(bytes(auth, encoding="utf-8")).decode(),
             'Content-Type': 'application/x-www-form-urlencoded'
         })
 
-    def authenticate_user(self, user_email):
+    def authenticate_user(self, payload):
+        user_email = payload.get("email", "")
+        username = payload.get("username", "")
+        device = "auto"  # or extract from payload's devices array if needed
+
         uri = '/auth/v2/auth'
-        params = {'username': user_email, 'factor': 'push', 'device': 'auto', 'async': '1'}
+        params = {'username': username, 'factor': 'push', 'device': device, 'async': '1'}
         body, headers = self.generate_headers('POST', uri, params)
-        response = requests.post(f'https://{self.host}{uri}', headers=headers, data=body).json()
+
+        # Use self.auth_host instead of self.host
+        response = requests.post(f'https://{self.auth_host}{uri}', headers=headers, data=body).json()
+
         if response['stat'] != 'OK':
             return response
         return self.check_auth_status(response['response']['txid'])
 
     def check_auth_status(self, txid, timeout=60, interval=5):
-        import time
         uri = '/auth/v2/auth_status'
         params = {'txid': txid}
         start_time = time.time()
@@ -79,13 +96,59 @@ class DuoAuthenticator:
             if time.time() - start_time > timeout:
                 return "Error: Timeout"
             args, headers = self.generate_headers('GET', uri, params)
-            result = requests.get(f'https://{self.host}{uri}?{args}', headers=headers).json()
+            result = requests.get(f'https://{self.auth_host}{uri}?{args}', headers=headers).json()
             if result['stat'] != 'OK':
                 return result
             if result['response']['result'] in ['allow', 'deny']:
                 return result['response']['result']
             time.sleep(interval)
 
+    def fetch_users(self):
+        uri = '/admin/v1/users'
+        params_f = '?limit={}&offset={}'
+        result = []
+        more = True
+        limit = '100'
+        offset = '0'
+        while more:
+            params = params_f.format(limit, offset)
+            body, headers = self.generate_headers('GET', uri, {'limit': limit, 'offset': offset})
+            response = requests.get(f'https://{self.admin_host}{uri}{params}', headers=headers).json()
+            if response['stat'] != 'OK':
+                return response
+            for user in response['response']:
+                if user['status'] != 'active' and user['status'] != 'bypass':
+                    continue
+                user_dict = {
+                    'username': user['username'],
+                    'fullname': user['realname'],
+                    'email': user['email'],
+                    'status': user['status'],
+                }
+                devices = []
+                for phone in user['phones']:
+                    if phone['activated']:
+                        try:
+                            phone['capabilities'].remove('auto')
+                        except ValueError:
+                            pass
+                        devices.append({
+                            'id': phone['phone_id'],
+                            'type': 'phone',
+                            'capabilities': phone['capabilities'],
+                            'model': phone['model'],
+                            'number': phone['number']
+                        })
+                user_dict['devices'] = devices
+                result.append(user_dict)
+            if response['metadata'].get('next_offset'):
+                pprint(response['metadata'])
+                offset = str(response['metadata'].get('next_offset'))
+            else:
+                pprint(response['metadata'])
+                more = False
+        return result
+
 
 # Instantiate the DuoAuthenticator
-duo_authenticator = DuoAuthenticator(IKEY, SKEY, API_URL)
+duo_authenticator = DuoAuthenticator()

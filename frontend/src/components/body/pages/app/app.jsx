@@ -10,19 +10,33 @@ writing, software distributed under the License is distributed on an "AS
 IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 or implied.
 */
-
 import { useState, useEffect } from 'react';
-import { Card, CardContent, Typography, Grid, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
+import { Card, CardContent, Typography, Grid, Button, TextField, CircularProgress, Autocomplete } from '@mui/material';
+// import Autocomplete from '@mui/lab/Autocomplete';
 import axios from 'axios';
 
 const AppPage = () => {
-    const [selectedUser, setSelectedUser] = useState('');
+    const [selectedUser, setSelectedUser] = useState(null);
     const [output, setOutput] = useState('');
     const [isRequestSent, setIsRequestSent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [callerViewText, setCallerViewText] = useState('No push notification sent yet.');
+    const [users, setUsers] = useState([]);  // State to store the fetched users
 
-    const users = ['rey_diaz', 'user_2', 'user_3']; // Replace with actual user list
+    // Fetch users from the backend
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/users/');
+                console.log(response);
+                setUsers(response.data.output); // Assuming the response has an 'output' field with user data
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     const handleSendPush = async () => {
         if (!selectedUser) {
@@ -31,22 +45,31 @@ const AppPage = () => {
         }
 
         setIsLoading(true);
-        setCallerViewText(`Sending push notification to ${selectedUser}...`);
+        setCallerViewText(`Sending push notification to ${selectedUser.username}...`);
+
+        // Prepare the user data for the backend, ensuring it matches the UserRequest model
+        const userRequest = {
+            username: selectedUser.username,
+            fullname: selectedUser.fullname, // Ensure this field exists in selectedUser
+            email: selectedUser.email,
+            status: selectedUser.status, // Ensure this field exists in selectedUser
+            devices: selectedUser.devices // Ensure this field exists in selectedUser and is an array
+        };
 
         try {
-            const response = await axios.post('http://localhost:8000/authenticate/', { email: selectedUser });
+            const response = await axios.post('http://localhost:8000/authenticate/', userRequest);
             if (response.data.output) {
                 setOutput(response.data.output);
-                setCallerViewText(`Push notification sent to ${selectedUser}. Awaiting response...`);
+                setCallerViewText(`Push notification sent to ${selectedUser.username}. Awaiting response...`);
             } else {
                 setOutput('No response received');
-                setCallerViewText(`Push notification sent to ${selectedUser}. Awaiting response...`);
+                setCallerViewText(`Push notification sent to ${selectedUser.username}. Awaiting response...`);
             }
             setIsRequestSent(true);
         } catch (error) {
             console.error('Error:', error);
             setOutput('An error occurred');
-            setCallerViewText(`Push notification to ${selectedUser} failed!`);
+            setCallerViewText(`Push notification to ${selectedUser.username} failed!`);
         } finally {
             setIsLoading(false);
         }
@@ -61,7 +84,7 @@ const AppPage = () => {
     useEffect(() => {
         if (isRequestSent && !isLoading) {
             const timer = setTimeout(() => {
-                setCallerViewText(`Push notification to ${selectedUser} completed!`);
+                setCallerViewText(`Push notification to ${selectedUser.username} completed!`);
             }, 2000); // Show success message after 2 seconds (adjust as needed)
             return () => clearTimeout(timer);
         }
@@ -74,24 +97,23 @@ const AppPage = () => {
                 <Card style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                     <CardContent>
                         <Typography variant="h5" gutterBottom>Call Center View</Typography>
-                        <FormControl fullWidth>
-                            <InputLabel id="user-select-label">User</InputLabel>
-                            <Select
-                                labelId="user-select-label"
-                                value={selectedUser}
-                                label="User"
-                                onChange={(e) => setSelectedUser(e.target.value)}
-                                disabled={isRequestSent || isLoading}
-                            >
-                                {users.map((user) => (
-                                    <MenuItem key={user} value={user}>{user}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <Button 
-                            variant="contained" 
-                            color="primary" 
-                            onClick={handleSendPush} 
+                        <Autocomplete
+                            value={selectedUser}
+                            onChange={(event, newValue) => {
+                                setSelectedUser(newValue);
+                            }}
+                            options={users}
+                            getOptionLabel={(option) => option.username || ""}
+                            renderInput={(params) => (
+                                <TextField {...params} label="User" variant="outlined" fullWidth />
+                            )}
+                            isOptionEqualToValue={(option, value) => option.username === value.username}
+                            disabled={isRequestSent || isLoading}
+                        />
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSendPush}
                             disabled={isRequestSent || !selectedUser || isLoading}
                             style={{ marginTop: 20 }}
                         >

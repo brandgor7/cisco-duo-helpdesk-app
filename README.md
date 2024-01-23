@@ -23,7 +23,7 @@ preventing unauthorized access to sensitive information.
 ### Backend
 #### Retrieve Duo Credentials 
 1. Follow the instructions under 'First Steps' to get your Duo integration key, secret key and API hostname: https://duo.com/docs/authapi.
-2. Clone this repository with git clone [repository name]
+2. Clone this repository with git clone `git clone https://github.com/gve-sw/gve_devnet_duo_manual_push_auth.git`.
 3. Create and update .env (see below)
 4. Proceed to 'usage' section.
 
@@ -36,17 +36,26 @@ open .env
 ```
 Copy/Paste the .env variables and update accordingly:
 ```script
-DUO_IKEY=YOUR_DUO_INTEGRATION_KEY
-DUO_SKEY=YOUR_DUO_SECRET_KEY
-DUO_API_URL=YOUR_API_HOSTNAME
 APP_NAME='Duo Manual Push Authentication'
 APP_VERSION=1.0
 LOGGER_LEVEL=DEBUG
+DUO_API_URL=YOUR_API_HOSTNAME
+DUO_IKEY=YOUR_DUO_INTEGRATION_KEY
+DUO_SKEY=YOUR_DUO_SECRET_KEY
+DUO_ADMIN_API_URL=YOUR_ADMIN_API_HOSTNAME
+DUO_ADMIN_IKEY=YOUR_DUO_ADMIN_INTEGRATION_KEY
+DUO_ADMIN_SKEY=YOUR_DUO_ADMIN_SECRET_KEY
 ```
-* Note: APP_NAME and APP_VERSION are for auto generated FastAPI docs at uvicorn_running_url/docs (i.e. http://127.0.0.1:8000/docs )
+* Note: APP_NAME and APP_VERSION are for auto-generated FastAPI docs at uvicorn_running_url/docs (i.e. http://127.0.0.1:8000/docs )
 
 ## Usage
-### 1. Start Frontend
+### With Docker
+#### 1. To build and start the containers, run: ``` docker-compose up --build ```
+#### 2. Navigate to URL: ``` http://localhost:5173/ ```
+#### 3. To stop the containers and remove them along with their network, run: ``` docker-compose down ```
+
+### Without Docker
+#### 1. Start Frontend
 Terminal 1:
 ```script
 cd frontend
@@ -54,14 +63,14 @@ npm install
 npm run dev
 ```
 
-### 2. Start Backend
+#### 2. Start Backend
 Terminal 2:
 ```scipt
 cd backend
 uvicorn main:app --reload
 ```
 
-### 3. Navigate to Frontend URL:
+#### 3. Navigate to Frontend URL:
 ```script
 http://localhost:5173/
 ```

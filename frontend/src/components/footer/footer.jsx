@@ -71,9 +71,7 @@ const Footer = () => {
           </a>
         </div>
 
-        <Typography variant="h6" gutterBottom>
-          Cisco GVE DevNet
-        </Typography>
+
         <Typography variant="subtitle1" color="text.secondary" component="p">
           Explore the world of Cisco's Global Virtual Engineering (GVE) DevNet!
         </Typography>

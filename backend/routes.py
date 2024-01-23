@@ -10,8 +10,8 @@ writing, software distributed under the License is distributed on an "AS
 IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 or implied.
 """
-
 from fastapi import APIRouter, Request, Depends, HTTPException
+from typing import List, Optional
 from pydantic import BaseModel
 from logrr import logger_manager
 from duo_app import duo_authenticator
@@ -19,18 +19,39 @@ from duo_app import duo_authenticator
 router = APIRouter()
 
 
-class UserRequest(BaseModel):
-    email: str
+class Device(BaseModel):
+    id: str
+    type: str
+    capabilities: List[str]
+    model: Optional[str] = None
+    number: Optional[str] = None
 
 
-# Using duo_app.py
+class User(BaseModel):
+    username: str
+    fullname: str
+    email: Optional[str] = None
+    status: str
+    devices: List[Device]
+
+
 @router.post("/authenticate/")
-def authenticate(user_request: UserRequest):
+async def authenticate(user_request: User):
     try:
-        logger_manager.console.print('[orange1]Authenticating with Duo...[/orange1]')
-        result = duo_authenticator.authenticate_user(user_request.email)
-        # result = duo_authenticator.parse_hostname(config.DUO_API_URL)
-        logger_manager.console.print(f'Result {result}')
+        user_request_dict = user_request.model_dump()  # Convert the user_request object to a dictionary
+        result = duo_authenticator.authenticate_user(user_request_dict)  # Pass the user_request_dict to the authenticate_user function
+        # Simulate authentication result for demonstration purposes (optional)
+        # result = "Authentication successful for user: " + user_request.username
+        return {"output": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  # Log and handle the error
+
+
+@router.get("/users/")
+def users():
+    try:
+        logger_manager.console.print('[orange1]Fetching users...[/orange1]')
+        result = duo_authenticator.fetch_users()
         return {"output": result}
     except Exception as e:
         # Log and handle the error

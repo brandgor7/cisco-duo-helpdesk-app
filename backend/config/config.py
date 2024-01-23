@@ -18,7 +18,6 @@ from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
-
 # Dynamically locate the .env file and handle cases where it might not exist.
 try:
     env_path = pathlib.Path(__file__).parents[0] / '.env'
@@ -43,6 +42,9 @@ class Config(BaseSettings):
     DUO_IKEY: str
     DUO_SKEY: str
 
+    DUO_ADMIN_API_URL: str
+    DUO_ADMIN_IKEY: str
+    DUO_ADMIN_SKEY: str
 
     @field_validator('DUO_API_URL', mode='before')
     def validate_duo_api_url(cls, v):
@@ -51,4 +53,5 @@ class Config(BaseSettings):
         return v
 
 
-config = Config()      # Create a single instance of Config()
+
+config = Config()  # Create a single instance of Config()
