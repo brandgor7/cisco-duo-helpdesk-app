@@ -72,7 +72,7 @@ class DuoAuthenticator:
             'Content-Type': 'application/x-www-form-urlencoded'
         })
 
-    def authenticate_user(self, payload):
+    def send_push(self, payload):
         user_email = payload.get("email", "")
         username = payload.get("username", "")
         device = "auto"  # or extract from payload's devices array if needed
@@ -87,6 +87,23 @@ class DuoAuthenticator:
         if response['stat'] != 'OK':
             return response
         return self.check_auth_status(response['response']['txid'])
+
+    def send_token(self, payload):
+        user_email = payload.get("email", "")
+        username = payload.get("username", "")
+        token = payload.get("token", "")
+        device = "auto"  # or extract from payload's devices array if needed
+
+        uri = '/auth/v2/auth'
+        params = {'username': username, 'factor': 'passcode', 'passcode': token}
+        body, headers = self.generate_headers('POST', uri, params)
+
+        # Use self.auth_host instead of self.host
+        response = requests.post(f'https://{self.auth_host}{uri}', headers=headers, data=body).json()
+
+        if response['stat'] != 'OK':
+            return response['message_detail']
+        return response['response']['result']
 
     def check_auth_status(self, txid, timeout=60, interval=5):
         uri = '/auth/v2/auth_status'

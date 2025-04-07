@@ -19,17 +19,20 @@ import {
   Button,
   TextField,
   CircularProgress,
+  Divider,
 } from "@mui/material";
-import Autocomplete from "@mui/lab/Autocomplete";
+import Autocomplete from "@mui/material/Autocomplete";
 import axios from "axios";
 
 const AppPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [output, setOutput] = useState("");
+  const [tokenInput, setTokenInput] = useState(false);
+  const [tokenValue, setTokenValue] = useState("");
   const [isRequestSent, setIsRequestSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [callerViewText, setCallerViewText] = useState(
-    "No push notification sent yet."
+    "No caller action required yet."
   );
   const [users, setUsers] = useState([]); // State to store the fetched users
 
@@ -70,11 +73,11 @@ const AppPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/authenticate/",
+        "http://localhost:8000/push/",
         userRequest
       );
       if (response.data.output) {
-        setOutput(response.data.output);
+        setOutput(response.data.output)
         setCallerViewText(
           `Push notification sent to ${selectedUser.username}. Awaiting response...`
         );
@@ -96,17 +99,78 @@ const AppPage = () => {
     }
   };
 
+  const handleSelectToken = () => {
+    if (!selectedUser) {
+      alert("Please select a user");
+      return;
+    }
+
+    setIsLoading(true);
+    setTokenInput(true);
+    setCallerViewText(
+      `Waiting for ${selectedUser.username} to provide hardware token number...`
+    );
+  }
+
+  const handleSubmitToken = async () => {
+    setIsLoading(true);
+    console.log(tokenValue)
+    const userRequest = {
+      username: selectedUser.username,
+      fullname: selectedUser.fullname,
+      email: selectedUser.email,
+      status: selectedUser.status,
+      devices: selectedUser.devices,
+      token: tokenValue,
+    };
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/token/",
+        userRequest
+      );
+      if (response.data.output) {
+        setOutput(response.data.output)
+        response.data.output === "allow" ?
+        setCallerViewText(
+          `Correct token by ${selectedUser.username}!`
+        )
+        :
+        setCallerViewText(
+          `Incorrect token by ${selectedUser.username}`
+        );
+      } else {
+        setOutput("No response received");
+        setCallerViewText(
+          `Error processing token by ${selectedUser.username}, try again`
+        );
+      }
+      setIsRequestSent(true);
+    } catch (error) {
+      console.error("Error:", error);
+      setOutput("An error occurred");
+      setCallerViewText(
+        `Submitting token for ${selectedUser.username} failed!`
+      );
+    } finally {
+      setIsLoading(false);
+      setTokenInput(false);
+    }
+  };
+
   const handleClearOutput = () => {
     setOutput("");
     setIsRequestSent(false);
-    setCallerViewText("No push notification sent yet.");
+    setTokenInput(false);
+    setIsLoading(false);
+    setCallerViewText("No user action required yet.");
   };
 
   useEffect(() => {
     if (isRequestSent && !isLoading) {
       const timer = setTimeout(() => {
         setCallerViewText(
-          `Push notification to ${selectedUser.username} completed!`
+          `Verification of ${selectedUser.username} completed!`
         );
       }, 2000); // Show success message after 2 seconds (adjust as needed)
       return () => clearTimeout(timer);
@@ -159,6 +223,15 @@ const AppPage = () => {
               {isLoading ? <CircularProgress size={24} /> : "Send Duo Push"}
             </Button>
             <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSelectToken}
+              disabled={isRequestSent || !selectedUser || isLoading}
+              style={{ marginTop: 20, marginLeft: 10 }}
+            >
+              {isLoading ? <CircularProgress size={24} /> : "Enter Token"}
+            </Button>
+            <Button
               variant="outlined"
               color="primary"
               onClick={handleClearOutput}
@@ -167,7 +240,44 @@ const AppPage = () => {
             >
               Clear Output
             </Button>
+            {tokenInput && (
+              <>
+              <Divider
+                style={{ marginTop: 20 }}
+              />
+              <TextField
+                label="Token"
+                variant="outlined"
+                style={{ marginTop: 20 }}
+                onChange={(event) => {
+                  setTokenValue(event.target.value);
+                }}
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmitToken}
+                style={{ marginTop: 30, marginLeft: 40 }}
+                disabled={isRequestSent}
+              >
+                Submit
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleClearOutput}
+                style={{ marginTop: 30, marginLeft: 10 }}
+                disabled={isRequestSent}
+              >
+                Cancel
+              </Button>
+              </>
+            )}
             {output && (
+              <>
+              <Divider
+                style={{ marginTop: 20 }}
+              />
               <Typography
                 paragraph
                 style={{
@@ -183,6 +293,7 @@ const AppPage = () => {
               >
                 Response: {output}
               </Typography>
+              </>
             )}
           </CardContent>
         </Card>
