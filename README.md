@@ -1,11 +1,12 @@
-# gve_devnet_duo_manual_push_auth
-This application provides a secure, web-based interface for Duo Administrators to verify the identity of individuals calling into branch locations. 
-It leverages Duo's two-factor authentication system to ensure that callers are who they claim to be, thereby enhancing security and 
-preventing unauthorized access to sensitive information.
+# cisco_duo_helpdesk_app
+For Duo MFA customers, this application provides a secure, web-based interface for helpdesk agents to verify the identity of individuals calling into the helpdesk. 
+It leverages Duo's two-factor authentication API system to ensure that callers are who they claim to be, thereby enhancing security and 
+preventing unauthorized access to sensitive information. Two methods of authentication are supported: Duo Push and Token (either hardware or from the Duo app).
 
 ## Contacts
 * Rey Diaz
 * Mark Orszycki
+* Brandon Gordon
 
 ## Solution Components
 * Authentication: Cisco Duo API
@@ -13,19 +14,21 @@ preventing unauthorized access to sensitive information.
 * Backend: FastAPI + Uvicorn (Python)
 
 ## Key Features
-1. Duo Integration: Seamlessly integrates with Duo's API, enabling branch staff to send a Duo push notification for user verification. 
-2. User Verification: Allows branch employees to search for a user (e.g., an executive) and initiate a Duo push notification to verify their identity during phone calls. 
-3. Secure Branch Access: Incorporates a login system for branch locations, ensuring that only authorized personnel can use the application to initiate verification requests. 
+1. Duo Integration: Seamlessly integrates with Duo's API, enabling helpdesk staff to send a Duo push notification for user verification. 
+2. User Verification: Allows helpdesk employees to search for a user (e.g., an executive) and initiate a Duo push notification to verify their identity during phone calls. 
+3. Secure Branch Access: Incorporates a login system for the helpdesk, ensuring that only authorized personnel can use the application to initiate verification requests. 
 4. Frontend Interface: Provides a user-friendly frontend, built with React.js, enabling staff to easily navigate and use the system. 
 5. Backend API: Utilizes a robust FastAPI backend for handling authentication logic, API integration, and data processing.
 
 ## Installation/Configuration
 ### Backend
 #### Retrieve Duo Credentials 
-1. Follow the instructions under 'First Steps' to get your Duo integration key, secret key and API hostname: https://duo.com/docs/authapi.
-2. Clone this repository with git clone `git clone https://github.com/gve-sw/gve_devnet_duo_manual_push_auth.git`.
-3. Create and update .env (see below)
-4. Proceed to 'usage' section.
+1. Follow the instructions under 'First Steps' to get your Duo Auth integration key, secret key and API hostname: https://duo.com/docs/authapi#first-steps.
+2. Similarly, follow the instructions under 'First Steps' to get your Duo Admin integration key, secret key and API hostname: https://duo.com/docs/adminapi#first-steps.
+The Grant Resource - Read permission is needed.
+3. Clone this repository with git clone `git clone https://github.com/brandgor7/cisco-duo-helpdesk-app.git`.
+4. Create and update .env (see below)
+5. Proceed to 'usage' section.
 
 #### Create and update .env
 Create .env in backend/config/:
