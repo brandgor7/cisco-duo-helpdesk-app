@@ -24,6 +24,8 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
 const AppPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [output, setOutput] = useState("");
@@ -40,7 +42,7 @@ const AppPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/users/");
+        const response = await axios.get(`${API_URL}/users/`);
         console.log(response);
         setUsers(response.data.output); // Assuming the response has an 'output' field with user data
       } catch (error) {
@@ -73,7 +75,7 @@ const AppPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/push/",
+        `${API_URL}/push/`,
         userRequest
       );
       if (response.data.output) {
@@ -126,7 +128,7 @@ const AppPage = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/token/",
+        `${API_URL}/token/`,
         userRequest
       );
       if (response.data.output) {

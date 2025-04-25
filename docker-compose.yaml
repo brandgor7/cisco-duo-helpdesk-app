@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.4"
 
 services:
   frontend:
@@ -10,6 +10,7 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
+#     - VITE_BACKEND_URL=
 
   backend:
     env_file:
