@@ -33,19 +33,31 @@ class User(BaseModel):
     email: Optional[str] = None
     status: str
     devices: List[Device]
+    token: Optional[str] = None
 
 
-@router.post("/authenticate/")
-async def authenticate(user_request: User):
+@router.post("/push/")
+async def push(user_request: User):
     try:
         user_request_dict = user_request.model_dump()  # Convert the user_request object to a dictionary
-        result = duo_authenticator.authenticate_user(user_request_dict)  # Pass the user_request_dict to the authenticate_user function
+        result = duo_authenticator.send_push(user_request_dict)  # Pass the user_request_dict to the send_push function
         # Simulate authentication result for demonstration purposes (optional)
         # result = "Authentication successful for user: " + user_request.username
         return {"output": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))  # Log and handle the error
 
+
+@router.post("/token/")
+async def token(user_request: User):
+    try:
+        user_request_dict = user_request.model_dump()  # Convert the user_request object to a dictionary
+        result = duo_authenticator.send_token(user_request_dict)  # Pass the user_request_dict to the send_push function
+        # Simulate authentication result for demonstration purposes (optional)
+        # result = "Authentication successful for user: " + user_request.username
+        return {"output": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  # Log and handle the error
 
 @router.get("/users/")
 def users():
